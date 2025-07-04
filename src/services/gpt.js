@@ -4,7 +4,7 @@ import axios from 'axios';
 
 // OpenAI API setup - using GPT-4.1
 const API_ENDPOINT = process.env.REACT_APP_OPENAI_API_ENDPOINT || 'https://api.openai.com/v1/chat/completions';
-const API_KEY = "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";
+const API_KEY = process.env.REACT_APP_OPENAI_API_KEY;
 const GPT_MODEL = "gpt-4-turbo"; // Latest available model
 
 // The full ETERNAL AWAKENING EXPANSION SUMMARY

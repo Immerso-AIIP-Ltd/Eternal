@@ -8,7 +8,7 @@ import { generateAIQuestion,generateExpansionReport } from './gpt'; // adjust pa
 
 // API settings (in production, store these in environment variables)
 const API_ENDPOINT = process.env.REACT_APP_OPENAI_API_ENDPOINT || 'https://api.openai.com/v1/chat/completions';
-const API_KEY = process.env.REACT_APP_OPENAI_API_KEY || "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"
+const API_KEY = process.env.REACT_APP_OPENAI_API_KEY
 const MODEL = 'gpt-3.5-turbo'; // You can upgrade to GPT-4 for better results if available
 const VISION_MODEL = 'gpt-4o'; // Model for image analysis
 
