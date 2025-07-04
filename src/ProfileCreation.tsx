@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Calendar, Clock, User, Upload, Star } from 'lucide-react';
 import background from './background.png'
-import { useNavigate } from 'react-router-dom'; 
+import { useNavigate } from 'react-router-dom';
 import { getAuth } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from './firebase/config';
-
+ 
 const ProfileCreation = () => {
    const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -22,30 +22,30 @@ const ProfileCreation = () => {
     timeOfBirth: '',
     profileImage: '',
   });
-
+ 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
   };
-
+ 
   const validate = () => {
     let valid = true;
     const newErrors: any = { name: '', dateOfBirth: '', timeOfBirth: '', profileImage: '' };
-
+ 
     // Name validation
     if (!formData.name.trim()) {
       newErrors.name = 'Name is required.';
       valid = false;
     }
-
+ 
     // Date of Birth validation (yyyy-MM-dd)
     if (!/^\d{4}-\d{2}-\d{2}$/.test(formData.dateOfBirth)) {
       newErrors.dateOfBirth = 'Date of Birth must be in yyyy-MM-dd format.';
       valid = false;
     }
-
+ 
     // Time of Birth validation (HH:MM)
     if (!/^\d{2}:\d{2}$/.test(formData.timeOfBirth)) {
       newErrors.timeOfBirth = 'Time must be in HH:MM format.';
@@ -61,17 +61,17 @@ const ProfileCreation = () => {
         valid = false;
       }
     }
-
+ 
     // Profile image validation
     if (!profileImage) {
       newErrors.profileImage = 'Profile image is required.';
       valid = false;
     }
-
+ 
     setErrors(newErrors);
     return valid;
   };
-
+ 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files && event.target.files[0];
     if (file) {
@@ -89,7 +89,7 @@ const ProfileCreation = () => {
       reader.readAsDataURL(file);
     }
   };
-
+ 
   const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     console.log("check")
@@ -102,7 +102,7 @@ const ProfileCreation = () => {
             ...formData,
             profileImage,
           }, { merge: true });
-          navigate('/splash');
+          navigate('/onboarding-one');
         } catch (err: any) {
           if (err && err.code === 'invalid-argument' && err.message && err.message.includes('profileImage')) {
             setErrors(prev => ({ ...prev, profileImage: 'Image is too large to save. Please select an image smaller than 1MB.' }));
@@ -112,7 +112,7 @@ const ProfileCreation = () => {
       }
     }
   };
-
+ 
   const sparkles = [
     { top: '10%', left: '5%', size: '12px', delay: '0s' },
     { top: '20%', right: '8%', size: '16px', delay: '1s' },
@@ -123,13 +123,13 @@ const ProfileCreation = () => {
     { top: '70%', left: '8%', size: '16px', delay: '3s' },
     { top: '35%', right: '15%', size: '10px', delay: '0.8s' }
   ];
-
+ 
   function formatDateForDisplay(dateStr: string) {
     // Expects yyyy-MM-dd, returns DD/MM/YYYY
     const [year, month, day] = dateStr.split('-');
     return `${day}/${month}/${year}`;
   }
-
+ 
   return (
     <div className="eternal-ai-fullscreen">
       <style>{`
@@ -142,7 +142,7 @@ const ProfileCreation = () => {
           display: flex;
           align-items: center;
         }
-
+ 
         .left-section {
           padding: 60px 40px;
           display: flex;
@@ -150,7 +150,7 @@ const ProfileCreation = () => {
           justify-content: center;
           min-height: 100vh;
         }
-
+ 
         .sparkle {
           position: absolute;
           width: 20px;
@@ -159,7 +159,7 @@ const ProfileCreation = () => {
           animation: sparkle 3s ease-in-out infinite;
           z-index: 1;
         }
-
+ 
         .sparkle::before {
           content: '';
           position: absolute;
@@ -171,7 +171,7 @@ const ProfileCreation = () => {
           background: linear-gradient(90deg, transparent, #9d4edd, transparent);
           border-radius: 1px;
         }
-
+ 
         .sparkle::after {
           content: '';
           position: absolute;
@@ -183,7 +183,7 @@ const ProfileCreation = () => {
           background: linear-gradient(90deg, transparent, #9d4edd, transparent);
           border-radius: 1px;
         }
-
+ 
         @keyframes sparkle {
           0%, 100% {
             opacity: 0.3;
@@ -194,7 +194,7 @@ const ProfileCreation = () => {
             transform: scale(1.2);
           }
         }
-
+ 
         .rotate-image-bg {
           width: 800px;
           height: 800px;
@@ -207,7 +207,7 @@ const ProfileCreation = () => {
           z-index: 0;
           pointer-events: none;
         }
-
+ 
         @keyframes rotateAnimation {
           0% {
             transform: translate(-50%, -50%) rotate(0deg);
@@ -255,7 +255,7 @@ const ProfileCreation = () => {
           color: transparent;
         }
       `}</style>
-
+ 
       {/* Animated Sparkles */}
       {sparkles.map((sparkle, index) => (
         <div
@@ -271,7 +271,7 @@ const ProfileCreation = () => {
           }}
         />
       ))}
-
+ 
       <div className="container-fluid" style={{ zIndex: 1 }}>
         <div className="row min-vh-100 align-items-center">
           {/* Left Side - Zodiac Wheel */}
@@ -303,7 +303,7 @@ const ProfileCreation = () => {
               </div>
             </div>
           {/* </div> */}
-
+ 
           {/* Right Side - Profile Form */}
           <div className="col-12 col-lg-5 p-4">
             <div className="mx-auto profile-form-gradient p-4" style={{ maxWidth: '400px' }}>
@@ -471,7 +471,7 @@ const ProfileCreation = () => {
                     color: 'white'
                   }}
                   onClick={handleSubmit}
-
+ 
                 >
                   Create Profile
                 </button>
@@ -483,6 +483,7 @@ const ProfileCreation = () => {
     </div>
   );
 };
-
-
+ 
+ 
 export default ProfileCreation;
+ 

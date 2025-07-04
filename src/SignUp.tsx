@@ -11,15 +11,15 @@ import { auth, db } from './firebase/config';
 import { useNavigate } from 'react-router-dom';
 import logo from './google-logo.png'
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
-
-
-
+ 
+ 
+ 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [showRewritePassword, setShowRewritePassword] = useState(false);
   const [formData, setFormData] = useState({
-    email: 'john@gmail.com',
+    email: '',
     password: '',
     rewritePassword: '',
     confirmPassword: '',
@@ -33,18 +33,18 @@ const LandingPage: React.FC = () => {
     password: '',
     rewritePassword: ''
   });
-
-
+ 
+ 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess('');
     setFieldErrors({ email: '', password: '', rewritePassword: '' });
     setLoading(true);
-
+ 
     let hasError = false;
     const newErrors = { email: '', password: '', rewritePassword: '' };
-
+ 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       newErrors.email = 'Please enter a valid email address';
@@ -63,7 +63,7 @@ const LandingPage: React.FC = () => {
       setLoading(false);
       return;
     }
-
+ 
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       const user = userCredential.user;
@@ -90,7 +90,7 @@ const LandingPage: React.FC = () => {
       setLoading(false);
     }
   };
-
+ 
   const handleGoogleSignIn = async () => {
     const provider = new GoogleAuthProvider();
     try {
@@ -121,14 +121,14 @@ const LandingPage: React.FC = () => {
     { top: '70%', left: '8%', size: '16px', delay: '3s' },
     { top: '35%', right: '15%', size: '10px', delay: '0.8s' }
   ];
-
+ 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
   };
-
+ 
   return (
     <div className="eternal-ai-fullscreen">
       <style>{`
@@ -141,7 +141,7 @@ const LandingPage: React.FC = () => {
           display: flex;
           align-items: center;
         }
-
+ 
         .sparkle {
           position: absolute;
           width: 20px;
@@ -150,7 +150,7 @@ const LandingPage: React.FC = () => {
           animation: sparkle 3s ease-in-out infinite;
           z-index: 1;
         }
-
+ 
         .sparkle::before {
           content: '';
           position: absolute;
@@ -162,7 +162,7 @@ const LandingPage: React.FC = () => {
           background: linear-gradient(90deg, transparent, #9d4edd, transparent);
           border-radius: 1px;
         }
-
+ 
         .sparkle::after {
           content: '';
           position: absolute;
@@ -174,7 +174,7 @@ const LandingPage: React.FC = () => {
           background: linear-gradient(90deg, transparent, #9d4edd, transparent);
           border-radius: 1px;
         }
-
+ 
         @keyframes sparkle {
           0%, 100% {
             opacity: 0.3;
@@ -185,7 +185,7 @@ const LandingPage: React.FC = () => {
             transform: scale(1.2);
           }
         }
-
+ 
         .rotating-svg {
           position: absolute;
           top: 50%;
@@ -197,7 +197,7 @@ const LandingPage: React.FC = () => {
           animation: rotate 30s linear infinite;
           z-index: 1;
         }
-
+ 
         @keyframes rotate {
           0% {
             transform: translate(-50%, -50%) rotate(0deg);
@@ -206,7 +206,7 @@ const LandingPage: React.FC = () => {
             transform: translate(-50%, -50%) rotate(360deg);
           }
         }
-
+ 
         .main-content {
           position: relative;
           z-index: 2;
@@ -215,7 +215,7 @@ const LandingPage: React.FC = () => {
           display: flex;
           align-items: center;
         }
-
+ 
         .left-section {
           padding: 60px 40px;
           display: flex;
@@ -225,7 +225,7 @@ const LandingPage: React.FC = () => {
           background: #ffffff;
           //  background: linear-gradient(135deg, #e8d5ff 0%, #f0e6ff 25%, #fff0f8 50%, #ffe6f0 75%, #ffd9e6 100%);
         }
-
+ 
         .right-section {
           background: #ffffff;
           backdrop-filter: blur(10px);
@@ -239,7 +239,7 @@ const LandingPage: React.FC = () => {
           width: 100%;
           margin: 0 auto;
         }
-
+ 
         .signup-section {
           padding: 40px 56px;
           border-radius: 16px;
@@ -249,7 +249,7 @@ const LandingPage: React.FC = () => {
           width: 100%;
           margin: 0 auto;
         }
-
+ 
         .brand-text {
           color: #00bcd4;
           font-size: 1.1rem;
@@ -258,7 +258,7 @@ const LandingPage: React.FC = () => {
           letter-spacing: 0.5px;
           text-align: center;
         }
-
+ 
         .hero-title {
           color: #4a1a4a;
           font-size: 3rem;
@@ -267,7 +267,7 @@ const LandingPage: React.FC = () => {
           margin-bottom: 2rem;
           text-shadow: 0 2px 4px rgba(74, 26, 74, 0.1);
         }
-
+ 
         .hero-description {
           color: #6b6b6b;
           font-size: 1rem;
@@ -275,7 +275,7 @@ const LandingPage: React.FC = () => {
           margin-bottom: 3rem;
           max-width: 500px;
         }
-
+ 
         .btn-demo {
           background: linear-gradient(135deg, #6a1b9a 0%, #4a148c 100%);
           color: white;
@@ -291,7 +291,7 @@ const LandingPage: React.FC = () => {
           margin: 0 auto 1rem auto;
           box-shadow: 0 4px 15px rgba(106, 27, 154, 0.3);
         }
-
+ 
         .btn-demo:hover {
           background: linear-gradient(135deg, #7b1fa2 0%, #512da8 100%);
           transform: translateY(-2px);
@@ -299,7 +299,7 @@ const LandingPage: React.FC = () => {
           color: white;
           text-decoration: none;
         }
-
+ 
         .signup-section h2 {
           color: #2c3e50;
           font-size: clamp(1.3rem, 4vw, 1.8rem);
@@ -309,25 +309,25 @@ const LandingPage: React.FC = () => {
           align-items: center;
           gap: 8px;
         }
-
+ 
         .signup-section h3 {
           color: #2c3e50;
           font-size: clamp(1rem, 3vw, 1.2rem);
           font-weight: 500;
           margin-bottom: 2rem;
         }
-
+ 
         .form-group {
           margin-bottom: 1.2rem;
         }
-
+ 
         .form-label {
           color: #2c3e50;
           font-weight: 500;
           margin-bottom: 0.5rem;
           display: block;
         }
-
+ 
         .form-control {
           border: 2px solid #e1e8ed;
           border-radius: 8px;
@@ -336,17 +336,17 @@ const LandingPage: React.FC = () => {
           transition: all 0.3s ease;
           background: white;
         }
-
+ 
         .form-control:focus {
           border-color: #6a1b9a;
           box-shadow: 0 0 0 0.2rem rgba(106, 27, 154, 0.25);
           background: white;
         }
-
+ 
         .password-input-wrapper {
           position: relative;
         }
-
+ 
         .password-toggle {
           position: absolute;
           right: 12px;
@@ -358,7 +358,7 @@ const LandingPage: React.FC = () => {
           cursor: pointer;
           padding: 4px;
         }
-
+ 
         .btn-signup {
           background: linear-gradient(135deg, #6a1b9a 0%, #4a148c 100%);
           color: white;
@@ -371,19 +371,19 @@ const LandingPage: React.FC = () => {
           margin-bottom: 1.5rem;
           transition: all 0.3s ease;
         }
-
+ 
         .btn-signup:hover {
           background: linear-gradient(135deg, #7b1fa2 0%, #512da8 100%);
           transform: translateY(-1px);
         }
-
+ 
         .divider {
           text-align: center;
           margin: 1.5rem 0;
           color: #6b6b6b;
           position: relative;
         }
-
+ 
         .divider::before {
           content: '';
           position: absolute;
@@ -394,20 +394,20 @@ const LandingPage: React.FC = () => {
           background: #e1e8ed;
           z-index: 1;
         }
-
+ 
         .divider span {
           background: rgba(255, 255, 255, 0.95);
           padding: 0 1rem;
           position: relative;
           z-index: 2;
         }
-
+ 
         .social-buttons {
           display: flex;
           gap: 1rem;
           margin-bottom: 1.5rem;
         }
-
+ 
         .btn-google,
         .btn-guest {
           border: 2px solid #e1e8ed;
@@ -421,29 +421,29 @@ const LandingPage: React.FC = () => {
           text-decoration: none;
           transition: all 0.3s ease;
         }
-
+ 
         .btn-google:hover,
         .btn-guest:hover {
           border-color: #6a1b9a;
           color: #6a1b9a;
           text-decoration: none;
         }
-
+ 
         .login-link {
           text-align: center;
           color: #6b6b6b;
         }
-
+ 
         .login-link a {
           color: #6a1b9a;
           text-decoration: none;
           font-weight: 500;
         }
-
+ 
         .login-link a:hover {
           text-decoration: underline;
         }
-
+ 
         /* Mobile Responsive */
         @media (max-width: 991px) {
           .rotating-svg {
@@ -452,31 +452,31 @@ const LandingPage: React.FC = () => {
             left: 50%;
             top: 20%;
           }
-          
+         
           .left-section,
           .right-section {
             padding: 40px 30px;
             min-height: auto;
           }
-          
+         
           .hero-title {
             font-size: 2.5rem;
             text-align: center;
           }
-          
+         
           .hero-description {
             text-align: center;
             margin: 0 auto 2rem auto;
           }
-          
+         
           .brand-text {
             text-align: center;
           }
-          
+         
           .btn-demo {
             margin: 0 auto;
           }
-          
+         
           .right-section {
             background: rgba(255, 255, 255, 0.98);
             border-left: none;
@@ -487,34 +487,34 @@ const LandingPage: React.FC = () => {
             max-width: 100vw;
           }
         }
-
+ 
         @media (max-width: 768px) {
           .rotating-svg {
             width: 300px;
             height: 300px;
             opacity: 0.05;
           }
-          
+         
           .left-section,
           .right-section {
             padding: 24px 2vw;
           }
-          
+         
           .hero-title {
             font-size: 2rem;
           }
-          
+         
           .social-buttons {
             flex-direction: column;
           }
-          
+         
           .btn-google,
           .btn-guest {
             width: 100%;
             min-width: unset;
             font-size: 1rem;
           }
-          
+         
           .sparkle {
             display: none;
           }
@@ -526,12 +526,12 @@ const LandingPage: React.FC = () => {
             max-width: 100vw;
           }
         }
-
+ 
         @media (max-width: 576px) {
           .hero-title {
             font-size: 1.8rem;
           }
-          
+         
           .left-section,
           .right-section {
             padding: 12px 0;
@@ -548,7 +548,7 @@ const LandingPage: React.FC = () => {
             flex-direction: column;
           }
         }
-
+ 
         @media (max-width: 1200px) {
           .right-section {
             padding: 40px 40px;
@@ -559,7 +559,7 @@ const LandingPage: React.FC = () => {
             max-width: 420px;
           }
         }
-
+ 
         @media (max-width: 991px) {
           .right-section {
             padding: 32px 16px;
@@ -570,13 +570,13 @@ const LandingPage: React.FC = () => {
             max-width: 100vw;
           }
         }
-
+ 
         .rotate-image-bg {
           width: 500px;
           height: 500px;
           animation: rotateAnimation 5s linear infinite;
         }
-
+ 
         @keyframes rotateAnimation {
           0% {
             transform: translate(-50%, -50%) rotate(0deg);
@@ -585,18 +585,18 @@ const LandingPage: React.FC = () => {
             transform: translate(-50%, -50%) rotate(360deg);
           }
         }
-
+ 
         .form-control, .btn-signup, .btn-google, .btn-guest {
           width: 100%;
           min-height: 48px;
           font-size: clamp(1rem, 2.5vw, 1.1rem);
         }
-
+ 
         .btn-signup, .btn-google, .btn-guest {
           min-height: 48px;
           font-size: clamp(1rem, 2.5vw, 1.1rem);
         }
-
+ 
         .btn-google {
           display: flex;
           align-items: center;
@@ -609,7 +609,7 @@ const LandingPage: React.FC = () => {
           width: 20px;
         }
       `}</style>
-
+ 
       {/* Animated Sparkles */}
       {sparkles.map((sparkle, index) => (
         <div
@@ -625,10 +625,10 @@ const LandingPage: React.FC = () => {
           }}
         />
       ))}
-
+ 
       {/* Rotating Background SVG */}
-
-
+ 
+ 
       {/* Main Content */}
       <div className="main-content">
         <div className="container-fluid h-100">
@@ -652,8 +652,8 @@ const LandingPage: React.FC = () => {
                   </h1>
                   <p className="hero-description">
                   Connect with Eternal AI and explore your spiritual journey
-
-
+ 
+ 
                   </p>
                   {/* <button className="btn-demo">
                     Start Demo
@@ -661,7 +661,7 @@ const LandingPage: React.FC = () => {
                 </div>
               </div>
             </div>
-
+ 
             {/* Right Section - Signup Form */}
             <div className="col-lg-5 col-12">
               <div className="right-section">
@@ -670,7 +670,7 @@ const LandingPage: React.FC = () => {
                     Hey There! 👋
                   </h2>
                   <h3>Sign Up Now</h3>
-                  
+                 
                   <form onSubmit={handleSubmit} autoComplete="off">
                     <div className="form-group">
                       <label className="form-label">Email address / Phone Number*</label>
@@ -680,7 +680,7 @@ const LandingPage: React.FC = () => {
                         name="email"
                         value={formData.email}
                         onChange={handleInputChange}
-                        placeholder="john@gmail.com"
+                        placeholder=""
                       />
                       {fieldErrors.email && <div style={{ color: 'red', fontSize: '0.95rem', marginTop: 4 }}>{fieldErrors.email}</div>}
                     </div>
@@ -734,24 +734,22 @@ const LandingPage: React.FC = () => {
                       {loading ? 'Creating Account...' : 'Sign Up'}
                     </button>
                   </form>
-                  
+                 
                   {success && <div className="alert alert-success mt-3">{success}</div>}
                   {error && <div className="alert alert-danger mt-3">{error}</div>}
-
+ 
                   <div className="divider">
                     <span>Or</span>
                   </div>
-                  
+                 
                   <div className="social-buttons">
                     <a href="#" className="btn-google"   onClick={handleGoogleSignIn}>
                       <img src={logo} alt="Google Logo" style={{width: '20px', height: '20px', marginRight: '8px'}} />
                       Sign up with Google
                     </a>
-                    <a href="#" className="btn-guest">
-                      Continue as Guest
-                    </a>
+                 
                   </div>
-                  
+                 
                   <div className="login-link">
                     Already have an account, <a href="/login">Log-in</a>
                   </div>
@@ -764,5 +762,6 @@ const LandingPage: React.FC = () => {
     </div>
   );
 };
-
+ 
 export default LandingPage;
+ 

@@ -1,3 +1,4 @@
+
 // src/services/gpt.js
 import axios from 'axios';
 
@@ -59,6 +60,541 @@ TOTAL PERCEPTUAL EXPANSION
 • With Eternal: You open 3–5%+ of full light/sound/aura field and rise above 500 Hz
 • Result: From trapped in Maya to living from Flame.
 `;
+
+/**
+ * ENHANCED VALIDATION FUNCTIONS
+ */
+
+/**
+ * Main GPT-powered response validation function
+ * @param {string} question - The question that was asked to the user
+ * @param {string} userAnswer - The user's response to validate
+ * @param {Object} context - Additional context about the question
+ * @returns {Promise<Object>} - Validation result with detailed feedback
+ */
+export async function validateUserResponseWithGPT(question, userAnswer, context = {}) {
+  const trimmedAnswer = userAnswer.trim();
+  
+  // Quick pre-validation checks
+  if (!trimmedAnswer) {
+    return {
+      isValid: false,
+      confidence: 100,
+      reason: "Empty response",
+      suggestion: "Please provide a response to continue your spiritual journey.",
+      severity: "error"
+    };
+  }
+
+  if (trimmedAnswer.length < 2) {
+    return {
+      isValid: false,
+      confidence: 95,
+      reason: "Response too short",
+      suggestion: "Please provide a more detailed response that reflects your genuine thoughts.",
+      severity: "warning"
+    };
+  }
+
+  // Check for obvious gibberish
+  const gibberishPatterns = [
+    /^[a-z]{1,3}$/i,                    // Single letters or very short random text
+    /^(.)\1{4,}$/,                      // Repeated characters (aaaaa, 11111)
+    /^[^a-zA-Z0-9\s]{3,}$/,            // Only special characters
+    /^(test|testing|abc|123|qwerty|asdf|hjkl)$/i, // Common test inputs
+    /^\d+$/                             // Only numbers (unless specifically asked for numbers)
+  ];
+
+  const isGibberish = gibberishPatterns.some(pattern => pattern.test(trimmedAnswer));
+  if (isGibberish && context.questionType !== 'numeric') {
+    return {
+      isValid: false,
+      confidence: 90,
+      reason: "Response appears to be random or test input",
+      suggestion: "Please share your genuine thoughts and feelings about this question.",
+      severity: "warning"
+    };
+  }
+
+  // For specific question types, add type-specific validation
+  if (context.questionType === 'vibrational' && context.isMultipleChoice) {
+    return validateMultipleChoiceResponse(trimmedAnswer, context.validOptions);
+  }
+
+  if (context.questionType === 'vibrational' && context.isSlider) {
+    return validateSliderResponse(trimmedAnswer, context.range);
+  }
+
+  // Use GPT for open-ended spiritual questions
+  return await validateWithGPT(question, trimmedAnswer, context);
+}
+
+/**
+ * Validate multiple choice responses
+ */
+function validateMultipleChoiceResponse(answer, validOptions) {
+  const lowerAnswer = answer.toLowerCase();
+  const isValid = validOptions.some(option => 
+    lowerAnswer.includes(option.toLowerCase()) || 
+    option.toLowerCase().includes(lowerAnswer)
+  );
+
+  if (isValid) {
+    return {
+      isValid: true,
+      confidence: 100,
+      reason: "Valid option selected"
+    };
+  }
+
+  return {
+    isValid: false,
+    confidence: 85,
+    reason: "Response doesn't match available options",
+    suggestion: `Please choose from: ${validOptions.join(', ')}`,
+    severity: "error"
+  };
+}
+
+/**
+ * Validate slider/numeric responses
+ */
+function validateSliderResponse(answer, range) {
+  const numValue = parseInt(answer);
+  
+  if (isNaN(numValue)) {
+    return {
+      isValid: false,
+      confidence: 95,
+      reason: "Expected a number",
+      suggestion: `Please enter a number between ${range.min} and ${range.max}`,
+      severity: "error"
+    };
+  }
+
+  if (numValue < range.min || numValue > range.max) {
+    return {
+      isValid: false,
+      confidence: 90,
+      reason: "Number outside valid range",
+      suggestion: `Please enter a number between ${range.min} and ${range.max}`,
+      severity: "error"
+    };
+  }
+
+  return {
+    isValid: true,
+    confidence: 100,
+    reason: "Valid numeric response"
+  };
+}
+
+/**
+ * GPT-powered validation for open-ended responses
+ */
+async function validateWithGPT(question, answer, context) {
+  const prompt = `You are a spiritual assessment validator for Eternal AI. Your job is to determine if a user's response is appropriate and meaningful for spiritual guidance.
+
+QUESTION ASKED: "${question}"
+USER'S RESPONSE: "${answer}"
+ASSESSMENT TYPE: ${context.pathType || 'general'}
+CONTEXT: ${JSON.stringify(context)}
+
+Evaluate this response based on:
+
+1. RELEVANCE: Does the answer relate to the spiritual/wellness question asked?
+2. AUTHENTICITY: Does it seem like a genuine personal response vs random text?
+3. DEPTH: Is there enough substance for meaningful spiritual analysis?
+4. APPROPRIATENESS: Is it suitable for a spiritual assessment context?
+
+INVALID responses include:
+- Random letters, numbers, or keyboard mashing
+- Completely unrelated topics (unless spiritually metaphorical)
+- Offensive, inappropriate, or harmful content
+- Copy-pasted generic text that doesn't reflect personal experience
+- Single word responses to deep spiritual questions
+- Clear attempts to bypass or mock the assessment
+
+VALID responses include:
+- Personal experiences, feelings, and thoughts (even if brief)
+- Honest expressions of uncertainty or confusion
+- Spiritual practices, beliefs, or experiences
+- Emotional states and personal insights
+- Creative or metaphorical responses that show genuine engagement
+- "I don't know" or similar honest responses when appropriate
+
+Return a JSON object with this exact structure:
+{
+  "isValid": boolean,
+  "confidence": number (0-100),
+  "reason": "brief explanation of your assessment",
+  "suggestion": "helpful guidance if invalid, empty string if valid",
+  "encouragement": "positive spiritual message (always include)",
+  "severity": "error|warning|info"
+}
+
+Be encouraging while maintaining quality standards.`;
+
+  try {
+    const response = await axios.post(
+      API_ENDPOINT,
+      {
+        model: GPT_MODEL,
+        messages: [
+          { 
+            role: "system", 
+            content: "You are a compassionate spiritual validator. Always respond with valid JSON and be encouraging while maintaining assessment quality." 
+          },
+          { role: "user", content: prompt }
+        ],
+        temperature: 0.2, // Low temperature for consistent validation
+        max_tokens: 300
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${API_KEY}`
+        }
+      }
+    );
+
+    const result = JSON.parse(response.data.choices[0].message.content);
+    return {
+      isValid: result.isValid || false,
+      confidence: result.confidence || 0,
+      reason: result.reason || "",
+      suggestion: result.suggestion || "",
+      encouragement: result.encouragement || "Your spiritual journey is unique and valuable.",
+      severity: result.severity || "warning"
+    };
+
+  } catch (error) {
+    console.error('GPT validation error:', error);
+    
+    // Fallback validation
+    const wordCount = answer.trim().split(/\s+/).length;
+    
+    if (wordCount >= 3 && answer.length >= 10) {
+      return {
+        isValid: true,
+        confidence: 70,
+        reason: "Passed basic validation",
+        suggestion: "",
+        encouragement: "Thank you for sharing your thoughts on your spiritual journey.",
+        severity: "info"
+      };
+    } else {
+      return {
+        isValid: false,
+        confidence: 80,
+        reason: "Response needs more detail for meaningful spiritual analysis",
+        suggestion: "Please share more about your thoughts, feelings, or experiences related to this question.",
+        encouragement: "Your spiritual insights are valuable - please take a moment to share more.",
+        severity: "warning"
+      };
+    }
+  }
+}
+
+/**
+ * Enhanced validation specifically for ChatHome context
+ * @param {string} question - Current question text
+ * @param {string} answer - User's answer
+ * @param {Object} chatContext - Context from ChatHome (pathType, currentStep, etc.)
+ * @returns {Promise<Object>} - Validation result
+ */
+export async function validateChatHomeResponse(question, answer, chatContext) {
+  const { pathType, currentStep, currentSection } = chatContext;
+  
+  let context = {
+    pathType,
+    currentStep,
+    currentSection,
+    questionType: 'open-ended'
+  };
+
+  // Add specific context based on path type and question content
+  if (pathType === 'vibrational') {
+    if (question.includes('scale') || question.includes('1-10')) {
+      context.questionType = 'slider';
+      context.isSlider = true;
+      context.range = { min: 1, max: 10 };
+    } else if (question.includes('feel emotionally')) {
+      context.questionType = 'vibrational';
+      context.isMultipleChoice = true;
+      context.validOptions = ['Joyful', 'Calm', 'Neutral', 'Stressed', 'Angry', 'Sad'];
+    }
+  }
+
+  if (pathType === 'karmic') {
+    context.minWords = 5; // Karmic questions need more depth
+    context.questionType = 'spiritual';
+  }
+
+  if (pathType === 'aura') {
+    context.questionType = 'aura';
+    if (question.includes('color')) {
+      context.expectsColors = true;
+    }
+  }
+
+  return await validateUserResponseWithGPT(question, answer, context);
+}
+
+/**
+ * Generate enhanced validation feedback message
+ * @param {Object} validationResult - Result from validation
+ * @param {string} pathType - Type of spiritual path
+ * @returns {Object} - Formatted feedback for UI display
+ */
+export function generateValidationFeedback(validationResult, pathType = 'general') {
+  if (validationResult.isValid) {
+    return {
+      type: 'success',
+      title: 'Perfect! ✨',
+      message: validationResult.encouragement,
+      icon: '🌟'
+    };
+  }
+
+  const pathMessages = {
+    vibrational: {
+      title: 'Let\'s tune into your energy more clearly 🔮',
+      prefix: 'To accurately analyze your vibrational frequency,'
+    },
+    aura: {
+      title: 'Your aura reading needs more clarity ✨',
+      prefix: 'To perceive your energy field clearly,'
+    },
+    karmic: {
+      title: 'Your cosmic journey deserves deeper reflection 🌙',
+      prefix: 'For meaningful karmic insights,'
+    }
+  };
+
+  const pathConfig = pathMessages[pathType] || {
+    title: 'Let\'s explore your spiritual path more deeply 💫',
+    prefix: 'For a meaningful spiritual assessment,'
+  };
+
+  return {
+    type: validationResult.severity === 'error' ? 'error' : 'warning',
+    title: pathConfig.title,
+    message: `${pathConfig.prefix} ${validationResult.suggestion}`,
+    encouragement: validationResult.encouragement,
+    reason: validationResult.reason,
+    confidence: validationResult.confidence,
+    showTips: validationResult.confidence < 70,
+    allowProceed: validationResult.severity === 'info' // Allow proceeding for low-severity issues
+  };
+}
+
+/**
+ * LEGACY VALIDATION FUNCTIONS (for backwards compatibility)
+ */
+
+/**
+ * MAIN VALIDATION FUNCTION - Validates user responses using GPT (Legacy)
+ * @param {string} question - The question that was asked
+ * @param {string} answer - User's response to validate
+ * @param {Object} context - Additional context (questionType, expectedFormat, etc.)
+ * @returns {Promise<Object>} - Validation result with isValid, reason, suggestion
+ */
+export async function validateUserResponse(question, answer, context = {}) {
+  // Quick pre-validation checks
+  const trimmedAnswer = answer.trim();
+  
+  // Basic validation rules
+  if (!trimmedAnswer) {
+    return {
+      isValid: false,
+      reason: "Response cannot be empty",
+      suggestion: "Please provide a thoughtful response to continue your spiritual journey."
+    };
+  }
+
+  if (trimmedAnswer.length < 2) {
+    return {
+      isValid: false,
+      reason: "Response is too short",
+      suggestion: "Please provide a more detailed response that reflects your genuine thoughts and feelings."
+    };
+  }
+
+  // Check for gibberish or random characters
+  const gibberishPattern = /^[a-z]{1,3}$|^[^a-zA-Z0-9\s]{3,}$|^(.)\1{4,}$/i;
+  if (gibberishPattern.test(trimmedAnswer)) {
+    return {
+      isValid: false,
+      reason: "Response appears to be random characters or gibberish",
+      suggestion: "Please share your genuine thoughts and experiences in a meaningful way."
+    };
+  }
+
+  // For multiple choice or specific format questions, validate format
+  if (context.questionType === 'multipleChoice' && context.validOptions) {
+    const isValidOption = context.validOptions.some(option => 
+      trimmedAnswer.toLowerCase().includes(option.toLowerCase())
+    );
+    if (!isValidOption) {
+      return {
+        isValid: false,
+        reason: "Please select from the provided options",
+        suggestion: `Valid options are: ${context.validOptions.join(', ')}`
+      };
+    }
+  }
+
+  if (context.questionType === 'slider' && context.range) {
+    const numValue = parseInt(trimmedAnswer);
+    if (isNaN(numValue) || numValue < context.range.min || numValue > context.range.max) {
+      return {
+        isValid: false,
+        reason: `Please provide a number between ${context.range.min} and ${context.range.max}`,
+        suggestion: "Use the slider or enter a valid number within the specified range."
+      };
+    }
+  }
+
+  // For open-ended spiritual questions, use GPT validation
+  const prompt = `You are a spiritual assessment validator for the Eternal AI platform. Your job is to determine if a user's response is appropriate and meaningful for a spiritual/wellness assessment.
+
+QUESTION ASKED: "${question}"
+USER'S ANSWER: "${trimmedAnswer}"
+QUESTION CONTEXT: ${JSON.stringify(context)}
+
+Evaluate the response based on these criteria:
+1. RELEVANCE: Does the answer relate to the question asked?
+2. DEPTH: Is there enough substance for meaningful spiritual analysis? (minimum 3-5 words for most questions)
+3. AUTHENTICITY: Does it seem like a genuine personal response rather than random text?
+4. APPROPRIATENESS: Is it suitable for a spiritual/wellness context?
+5. COMPLETENESS: Does it adequately address what was asked?
+
+INVALID responses include:
+- Single letters or very short responses like "yes", "no", "good" for open-ended questions
+- Random characters, repeated letters, or keyboard mashing
+- Completely unrelated topics (unless the question allows creative interpretation)
+- Inappropriate, offensive, or harmful content
+- Copy-pasted generic text that doesn't reflect personal experience
+- Responses that show the user isn't taking the assessment seriously
+
+VALID responses include:
+- Personal experiences and feelings, even if brief
+- Honest expressions of uncertainty or confusion
+- Descriptions of spiritual practices or beliefs
+- Emotional states and personal insights
+- Genuine attempts to answer even if not perfectly articulated
+
+Return ONLY a JSON object with this exact structure:
+{
+  "isValid": boolean,
+  "confidence": number (0-100),
+  "reason": "brief explanation if invalid",
+  "suggestion": "helpful guidance if invalid",
+  "encouragement": "positive note about their spiritual journey (always include)"
+}
+
+Be encouraging and supportive while maintaining quality standards for meaningful spiritual assessment.`;
+
+  try {
+    const response = await axios.post(
+      API_ENDPOINT,
+      {
+        model: GPT_MODEL,
+        messages: [
+          { 
+            role: "system", 
+            content: "You are a compassionate spiritual validator. Always respond with valid JSON and be encouraging while maintaining quality standards." 
+          },
+          { role: "user", content: prompt }
+        ],
+        temperature: 0.3, // Lower temperature for consistent validation
+        max_tokens: 300
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${API_KEY}`
+        }
+      }
+    );
+
+    const result = JSON.parse(response.data.choices[0].message.content);
+    return {
+      isValid: result.isValid || false,
+      confidence: result.confidence || 0,
+      reason: result.reason || "",
+      suggestion: result.suggestion || "",
+      encouragement: result.encouragement || "Your spiritual journey is unique and valuable."
+    };
+
+  } catch (error) {
+    console.error('Validation error:', error);
+    
+    // Fallback validation for when API fails
+    const wordCount = trimmedAnswer.split(/\s+/).length;
+    
+    // More lenient fallback validation
+    if (wordCount >= 2 && trimmedAnswer.length >= 3) {
+      return {
+        isValid: true,
+        confidence: 70,
+        reason: "",
+        suggestion: "",
+        encouragement: "Thank you for sharing your thoughts on your spiritual journey."
+      };
+    } else {
+      return {
+        isValid: false,
+        confidence: 90,
+        reason: "Response needs more detail for meaningful spiritual analysis",
+        suggestion: "Please share more about your thoughts, feelings, or experiences related to this question.",
+        encouragement: "Your spiritual insights are valuable - please take a moment to share more."
+      };
+    }
+  }
+}
+
+/**
+ * Validate specific question types with enhanced rules
+ * @param {string} questionText - The exact question text
+ * @param {string} answer - User's response
+ * @param {string} questionType - Type of question (vibrational, aura, spiritual, etc.)
+ * @returns {Promise<Object>} - Enhanced validation result
+ */
+export async function validateQuestionType(questionText, answer, questionType = 'general') {
+  let context = { questionType };
+
+  // Set context based on question type and content
+  if (questionType === 'vibrational') {
+    if (questionText.includes('scale') || questionText.includes('1-10')) {
+      context.questionType = 'slider';
+      context.range = { min: 1, max: 10 };
+    } else if (questionText.includes('feel emotionally')) {
+      context.validOptions = ['Joyful', 'Calm', 'Neutral', 'Stressed', 'Angry', 'Sad'];
+      context.questionType = 'multipleChoice';
+    } else if (questionText.includes('thoughts usually')) {
+      context.validOptions = ['Positive', 'Mixed', 'Doubtful', 'Negative'];
+      context.questionType = 'multipleChoice';
+    }
+  }
+
+  if (questionType === 'aura') {
+    if (questionText.includes('colors')) {
+      context.expectsColors = true;
+    }
+  }
+
+  if (questionType === 'spiritual') {
+    context.minWords = 5; // Spiritual questions need more depth
+  }
+
+  return await validateUserResponse(questionText, answer, context);
+}
+
+/**
+ * REPORT GENERATION FUNCTIONS
+ */
 
 /**
  * Generate a vibrational frequency report based on user answers
@@ -424,7 +960,7 @@ Return only the report.`;
 /**
  * Utility function to parse sections from reports
  */
-export function parseSections(report: string) {
+export function parseSections(report) {
   if (!report) return [];
   const regex = /(?:\*\*|^)([^\n*]+?):\*\*\s*\n([\s\S]*?)(?=(?:\*\*[^\n*]+?:\*\*|$))/g;
   let match;
@@ -441,7 +977,7 @@ export function parseSections(report: string) {
 /**
  * Utility function to parse report to cards format
  */
-export function parseReportToCards(report: string) {
+export function parseReportToCards(report) {
   if (!report) return [];
   const regex = /\*\*([^\n*]+?)\*\*\s*\n([\s\S]*?)(?=(\*\*[^\n*]+?\*\*)|$)/g;
   let match;
@@ -456,6 +992,9 @@ export function parseReportToCards(report: string) {
 }
 
 export default {
+  validateUserResponse,
+  validateQuestionType,
+  generateValidationFeedback,
   generateVibrationalReport,
   generateAuraReport,
   generateJyotishReading,

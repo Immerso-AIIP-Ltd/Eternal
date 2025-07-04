@@ -29,9 +29,9 @@ const OnboardingOne: React.FC = () => {
     },
     { 
       id: 'karmic-awareness', 
-      label: 'Karmic Awareness', 
+      label: 'Life Prediction', 
       color: '#bfc9ca', 
-      desc: 'Unveil your karmic patterns and cosmic influences through Vedic astrology',
+      desc: 'Explore potential pathways and upcoming opportunities in your personal journey through intuitive guidance',
       path: '/chat?path=karmic'
     }
   ];

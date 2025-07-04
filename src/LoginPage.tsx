@@ -2,20 +2,17 @@ import React, { useState, useRef } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import background from './background.png'
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, getAuth } from 'firebase/auth';
-import { useNavigate } from 'react-router-dom'; 
+import { useNavigate } from 'react-router-dom';
 import { auth, db } from './firebase/config';
 import { getDoc, doc } from "firebase/firestore";
 import logo from './google-logo.png'
-
-
+ 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
-  const [showRewritePassword, setShowRewritePassword] = useState(false);
   const [formData, setFormData] = useState({
-    email: 'john@gmail.com',
+    email: '',
     password: '',
-    rewritePassword: ''
   });
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<string>('');
@@ -23,8 +20,9 @@ const LoginPage: React.FC = () => {
     email: '',
     password: ''
   });
+  const [isLoading, setIsLoading] = useState(false);
   const hasShownWelcome = useRef(false);
-
+ 
   const sparkles = [
     { top: '10%', left: '5%', size: '12px', delay: '0s' },
     { top: '20%', right: '8%', size: '16px', delay: '1s' },
@@ -35,49 +33,61 @@ const LoginPage: React.FC = () => {
     { top: '70%', left: '8%', size: '16px', delay: '3s' },
     { top: '35%', right: '15%', size: '10px', delay: '0.8s' }
   ];
-
+ 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
+    // Clear field errors when user starts typing
+    if (fieldErrors[e.target.name as keyof typeof fieldErrors]) {
+      setFieldErrors({
+        ...fieldErrors,
+        [e.target.name]: ''
+      });
+    }
   };
-
-
+ 
   const handleGoogleSignIn = async () => {
     const provider = new GoogleAuthProvider();
     setError('');
     setSuccess('');
+    setIsLoading(true);
+   
     try {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
       if (!user) throw new Error('No user info received from Google');
+     
       setSuccess('You have logged in successfully!');
       const reportDocRef = doc(db, 'userResults', user.uid);
       const reportDocSnap = await getDoc(reportDocRef);
+     
       setTimeout(() => {
         if (reportDocSnap.exists()) {
           navigate('/report');
         } else {
-          navigate('/splash');
+          navigate('/onboarding-one');
         }
       }, 1500);
     } catch (err: any) {
       console.error('Google login error:', err.message);
       setError('Google login error: ' + err.message);
+    } finally {
+      setIsLoading(false);
     }
   }
-
-
+ 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess('');
     setFieldErrors({ email: '', password: '' });
-
+    setIsLoading(true);
+ 
     let hasError = false;
     const newErrors = { email: '', password: '' };
-
+ 
     const { email, password } = formData;
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
@@ -90,27 +100,31 @@ const LoginPage: React.FC = () => {
     }
     if (hasError) {
       setFieldErrors(newErrors);
+      setIsLoading(false);
       return;
     }
-
+ 
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       setSuccess('You have logged in successfully!');
       const reportDoc = await getDoc(doc(db, 'userResults', user.uid));
+     
       setTimeout(() => {
         if (reportDoc.exists()) {
           navigate('/report');
         } else {
-          navigate('/splash');
+          navigate('/onboarding-one');
         }
       }, 1500);
     } catch (err: any) {
       console.error('Login error:', err.message);
       setError('Invalid email or password');
+    } finally {
+      setIsLoading(false);
     }
   };
-
+ 
   return (
     <div className="eternal-ai-fullscreen">
       <style>{`
@@ -122,7 +136,7 @@ const LoginPage: React.FC = () => {
           display: flex;
           align-items: center;
         }
-
+ 
         .sparkle {
           position: absolute;
           width: 20px;
@@ -131,7 +145,7 @@ const LoginPage: React.FC = () => {
           animation: sparkle 3s ease-in-out infinite;
           z-index: 1;
         }
-
+ 
         .sparkle::before {
           content: '';
           position: absolute;
@@ -143,7 +157,7 @@ const LoginPage: React.FC = () => {
           background: linear-gradient(90deg, transparent, #9d4edd, transparent);
           border-radius: 1px;
         }
-
+ 
         .sparkle::after {
           content: '';
           position: absolute;
@@ -155,7 +169,7 @@ const LoginPage: React.FC = () => {
           background: linear-gradient(90deg, transparent, #9d4edd, transparent);
           border-radius: 1px;
         }
-
+ 
         @keyframes sparkle {
           0%, 100% {
             opacity: 0.3;
@@ -166,28 +180,7 @@ const LoginPage: React.FC = () => {
             transform: scale(1.2);
           }
         }
-
-        .rotating-svg {
-          position: absolute;
-          top: 50%;
-          left: 25%;
-          transform: translate(-50%, -50%);
-          width: 600px;
-          height: 600px;
-          opacity: 0.1;
-          animation: rotate 30s linear infinite;
-          z-index: 1;
-        }
-
-        @keyframes rotate {
-          0% {
-            transform: translate(-50%, -50%) rotate(0deg);
-          }
-          100% {
-            transform: translate(-50%, -50%) rotate(360deg);
-          }
-        }
-
+ 
         .main-content {
           position: relative;
           z-index: 2;
@@ -196,136 +189,126 @@ const LoginPage: React.FC = () => {
           display: flex;
           align-items: center;
         }
-
+ 
         .left-section {
           padding: 60px 40px;
           display: flex;
           flex-direction: column;
           justify-content: center;
           min-height: 100vh;
+          position: relative;
+          overflow: hidden;
         }
-
+ 
         .right-section {
           background: #ffffff;
           backdrop-filter: blur(10px);
-          padding: 60px 120px;
+          padding: 40px 60px;
           display: flex;
           flex-direction: column;
           justify-content: center;
           min-height: 100vh;
           border-left: 1px solid rgba(255, 255, 255, 0.2);
-          max-width: 900px;
+          max-width: 600px;
           width: 100%;
-          margin: 0 auto;
         }
-
-        .signup-section {
-          padding: 40px 56px;
-          border-radius: 16px;
+ 
+        .login-section {
+          padding: 40px 32px;
+          border-radius: 20px;
           background: rgba(255,255,255,0.98);
-          box-shadow: 0 2px 16px rgba(0,0,0,0.04);
-          max-width: 800px;
+          box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255,255,255,0.2);
+          max-width: 480px;
           width: 100%;
           margin: 0 auto;
+          position: relative;
         }
-
+ 
         .brand-text {
           color: #00bcd4;
-          font-size: 1.1rem;
-          font-weight: 500;
+          font-size: 1.2rem;
+          font-weight: 600;
           margin-bottom: 2rem;
-          letter-spacing: 0.5px;
+          letter-spacing: 1px;
           text-align: center;
         }
-
+ 
         .hero-title {
           color: #4a1a4a;
-          font-size: 3rem;
+          font-size: 3.2rem;
           font-weight: 700;
           line-height: 1.2;
-          margin-bottom: 2rem;
+          margin-bottom: 1.5rem;
           text-shadow: 0 2px 4px rgba(74, 26, 74, 0.1);
         }
-
+ 
         .hero-description {
           color: #6b6b6b;
-          font-size: 1rem;
+          font-size: 1.1rem;
           line-height: 1.6;
           margin-bottom: 3rem;
           max-width: 500px;
         }
-
-        .btn-demo {
-          background: linear-gradient(135deg, #6a1b9a 0%, #4a148c 100%);
-          color: white;
-          border: none;
-          padding: 12px;
-          border-radius: 8px;
-          font-weight: 600;
-          font-size: 1rem;
-          text-decoration: none;
-          display: block;
-          width: 100%;
-          max-width: 260px;
-          margin: 0 auto 1rem auto;
-          box-shadow: 0 4px 15px rgba(106, 27, 154, 0.3);
-        }
-
-        .btn-demo:hover {
-          background: linear-gradient(135deg, #7b1fa2 0%, #512da8 100%);
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(106, 27, 154, 0.4);
-          color: white;
-          text-decoration: none;
-        }
-
-        .signup-section h2 {
+ 
+        .login-section h2 {
           color: #2c3e50;
-          font-size: 1.8rem;
-          font-weight: 600;
+          font-size: 2rem;
+          font-weight: 700;
           margin-bottom: 0.5rem;
           display: flex;
           align-items: center;
           gap: 8px;
+          text-align: center;
+          justify-content: center;
         }
-
-        .signup-section h3 {
-          color: #2c3e50;
-          font-size: 1.2rem;
-          font-weight: 500;
+ 
+        .login-section h3 {
+          color: #6b6b6b;
+          font-size: 1.1rem;
+          font-weight: 400;
           margin-bottom: 2rem;
+          text-align: center;
         }
-
+ 
         .form-group {
           margin-bottom: 1.5rem;
         }
-
+ 
         .form-label {
           color: #2c3e50;
-          font-weight: 500;
+          font-weight: 600;
           margin-bottom: 0.5rem;
           display: block;
+          font-size: 0.95rem;
         }
-
+ 
         .form-control {
           border: 2px solid #e1e8ed;
-          border-radius: 8px;
-          padding: 12px 16px;
+          border-radius: 12px;
+          padding: 14px 16px;
           font-size: 1rem;
           transition: all 0.3s ease;
           background: white;
+          width: 100%;
         }
-
+ 
         .form-control:focus {
           border-color: #6a1b9a;
-          box-shadow: 0 0 0 0.2rem rgba(106, 27, 154, 0.25);
+          box-shadow: 0 0 0 0.2rem rgba(106, 27, 154, 0.15);
           background: white;
+          outline: none;
         }
-
+ 
+        .form-control.error {
+          border-color: #e74c3c;
+        }
+ 
         .password-input-wrapper {
           position: relative;
         }
-
+ 
         .password-toggle {
           position: absolute;
           right: 12px;
@@ -336,33 +319,62 @@ const LoginPage: React.FC = () => {
           color: #6b6b6b;
           cursor: pointer;
           padding: 4px;
+          font-size: 1.2rem;
         }
-
-        .btn-signup {
+ 
+        .password-toggle:hover {
+          color: #6a1b9a;
+        }
+ 
+        .btn-login {
           background: linear-gradient(135deg, #6a1b9a 0%, #4a148c 100%);
           color: white;
           border: none;
-          padding: 12px;
-          border-radius: 8px;
+          padding: 14px 24px;
+          border-radius: 12px;
           font-weight: 600;
-          font-size: 1rem;
+          font-size: 1.1rem;
           width: 100%;
           margin-bottom: 1.5rem;
           transition: all 0.3s ease;
+          position: relative;
+          overflow: hidden;
         }
-
-        .btn-signup:hover {
+ 
+        .btn-login:hover:not(:disabled) {
           background: linear-gradient(135deg, #7b1fa2 0%, #512da8 100%);
-          transform: translateY(-1px);
+          transform: translateY(-2px);
+          box-shadow: 0 8px 25px rgba(106, 27, 154, 0.3);
         }
-
+ 
+        .btn-login:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+          transform: none;
+        }
+ 
+        .loading-spinner {
+          display: inline-block;
+          width: 20px;
+          height: 20px;
+          border: 2px solid #ffffff;
+          border-radius: 50%;
+          border-top-color: transparent;
+          animation: spin 1s ease-in-out infinite;
+          margin-right: 8px;
+        }
+ 
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+ 
         .divider {
           text-align: center;
-          margin: 1.5rem 0;
+          margin: 2rem 0;
           color: #6b6b6b;
           position: relative;
         }
-
+ 
         .divider::before {
           content: '';
           position: absolute;
@@ -373,160 +385,90 @@ const LoginPage: React.FC = () => {
           background: #e1e8ed;
           z-index: 1;
         }
-
+ 
         .divider span {
           background: rgba(255, 255, 255, 0.95);
           padding: 0 1rem;
           position: relative;
           z-index: 2;
+          font-weight: 500;
         }
-
-        .social-buttons {
-          display: flex;
-          gap: 1rem;
-          margin-bottom: 1.5rem;
-        }
-
-        .btn-google,
-        .btn-guest {
+ 
+        .btn-google {
           border: 2px solid #e1e8ed;
           background: white;
           color: #2c3e50;
-          padding: 10px 16px;
-          border-radius: 8px;
+          padding: 12px 16px;
+          border-radius: 12px;
           font-weight: 500;
-          flex: 1;
+          width: 100%;
           text-align: center;
           text-decoration: none;
           transition: all 0.3s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          margin-bottom: 1.5rem;
         }
-
-        .btn-google:hover,
-        .btn-guest:hover {
+ 
+        .btn-google:hover {
           border-color: #6a1b9a;
           color: #6a1b9a;
           text-decoration: none;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
-
-        .login-link {
+ 
+        .signup-link {
           text-align: center;
           color: #6b6b6b;
+          font-size: 0.95rem;
         }
-
-        .login-link a {
+ 
+        .signup-link a {
           color: #6a1b9a;
           text-decoration: none;
-          font-weight: 500;
+          font-weight: 600;
         }
-
-        .login-link a:hover {
+ 
+        .signup-link a:hover {
           text-decoration: underline;
         }
-
-        /* Mobile Responsive */
-        @media (max-width: 991px) {
-          .rotating-svg {
-            width: 400px;
-            height: 400px;
-            left: 50%;
-            top: 20%;
-          }
-          
-          .left-section,
-          .right-section {
-            padding: 40px 30px;
-            min-height: auto;
-          }
-          
-          .hero-title {
-            font-size: 2.5rem;
-            text-align: center;
-          }
-          
-          .hero-description {
-            text-align: center;
-            margin: 0 auto 2rem auto;
-          }
-          
-          .brand-text {
-            text-align: center;
-          }
-          
-          .btn-demo {
-            margin: 0 auto;
-          }
-          
-          .right-section {
-            background: rgba(255, 255, 255, 0.98);
-            border-left: none;
-            border-top: 1px solid rgba(255, 255, 255, 0.2);
-          }
+ 
+        .error-message {
+          color: #e74c3c;
+          font-size: 0.85rem;
+          margin-top: 0.5rem;
+          font-weight: 500;
         }
-
-        @media (max-width: 768px) {
-          .rotating-svg {
-            width: 300px;
-            height: 300px;
-            opacity: 0.05;
-          }
-          
-          .left-section,
-          .right-section {
-            padding: 30px 20px;
-          }
-          
-          .hero-title {
-            font-size: 2rem;
-          }
-          
-          .social-buttons {
-            flex-direction: column;
-          }
-          
-          .sparkle {
-            display: none;
-          }
+ 
+        .alert {
+          padding: 12px 16px;
+          border-radius: 8px;
+          margin-bottom: 1rem;
+          font-weight: 500;
+          text-align: center;
         }
-
-        @media (max-width: 576px) {
-          .hero-title {
-            font-size: 1.8rem;
-          }
-          
-          .left-section,
-          .right-section {
-            padding: 20px 15px;
-          }
+ 
+        .alert-success {
+          background-color: #d4edda;
+          border: 1px solid #c3e6cb;
+          color: #155724;
         }
-
-        @media (max-width: 1200px) {
-          .right-section {
-            padding: 40px 40px;
-            max-width: 520px;
-          }
-          .signup-section {
-            padding: 32px 16px;
-            max-width: 420px;
-          }
+ 
+        .alert-error {
+          background-color: #f8d7da;
+          border: 1px solid #f5c6cb;
+          color: #721c24;
         }
-
-        @media (max-width: 991px) {
-          .right-section {
-            padding: 32px 16px;
-            max-width: 100vw;
-          }
-          .signup-section {
-            padding: 24px 8px;
-            max-width: 100vw;
-          }
-        }
-
+ 
         .rotate-image-bg {
-          width: 500px;
-          height: 500px;
-          animation: rotateAnimation 5s linear infinite;
+          width: 600px;
+          height: 600px;
+          animation: rotateAnimation 20s linear infinite;
         }
-
+ 
         @keyframes rotateAnimation {
           0% {
             transform: translate(-50%, -50%) rotate(0deg);
@@ -535,8 +477,106 @@ const LoginPage: React.FC = () => {
             transform: translate(-50%, -50%) rotate(360deg);
           }
         }
+ 
+        /* Mobile Responsive */
+        @media (max-width: 1200px) {
+          .right-section {
+            padding: 40px 40px;
+            max-width: 540px;
+          }
+          .login-section {
+            padding: 32px 24px;
+            max-width: 420px;
+          }
+        }
+ 
+        @media (max-width: 991px) {
+          .left-section,
+          .right-section {
+            padding: 40px 30px;
+            min-height: auto;
+          }
+         
+          .hero-title {
+            font-size: 2.5rem;
+            text-align: center;
+          }
+         
+          .hero-description {
+            text-align: center;
+            margin: 0 auto 2rem auto;
+          }
+         
+          .brand-text {
+            text-align: center;
+          }
+         
+          .right-section {
+            background: rgba(255, 255, 255, 0.98);
+            border-left: none;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            max-width: 100%;
+          }
+ 
+          .login-section {
+            padding: 32px 24px;
+            max-width: 100%;
+          }
+ 
+          .rotate-image-bg {
+            width: 500px;
+            height: 500px;
+          }
+        }
+ 
+        @media (max-width: 768px) {
+          .left-section,
+          .right-section {
+            padding: 30px 20px;
+          }
+         
+          .hero-title {
+            font-size: 2.2rem;
+          }
+         
+          .sparkle {
+            display: none;
+          }
+ 
+          .login-section {
+            padding: 24px 20px;
+            border-radius: 16px;
+          }
+ 
+          .rotate-image-bg {
+            width: 400px;
+            height: 400px;
+            opacity: 0.1;
+          }
+        }
+ 
+        @media (max-width: 576px) {
+          .hero-title {
+            font-size: 1.8rem;
+          }
+         
+          .left-section,
+          .right-section {
+            padding: 20px 15px;
+          }
+ 
+          .login-section {
+            padding: 20px 16px;
+            margin: 0 10px;
+          }
+ 
+          .rotate-image-bg {
+            width: 300px;
+            height: 300px;
+          }
+        }
       `}</style>
-
+ 
       {/* Animated Sparkles */}
       {sparkles.map((sparkle, index) => (
         <div
@@ -552,111 +592,151 @@ const LoginPage: React.FC = () => {
           }}
         />
       ))}
-
-      {/* Rotating Background SVG */}
-
-
+ 
       {/* Main Content */}
       <div className="main-content">
         <div className="container-fluid h-100">
           <div className="row h-100">
             {/* Left Section */}
-            <div className="col-lg-7 col-12 position-relative" style={{overflow: 'hidden'}}>
+            <div className="col-lg-7 col-12 position-relative">
               <div className="left-section">
                 {/* Rotating Background Image */}
                 <img
                   src={background}
                   alt="Rotating Background"
                   className="rotate-image-bg"
-                  style={{position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 0, opacity: 0.15, pointerEvents: 'none', width: '800px', height: '800px'}}
+                  style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    zIndex: 0,
+                    opacity: 0.12,
+                    pointerEvents: 'none'
+                  }}
                 />
-                <div style={{position: 'relative', zIndex: 1, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh'}}>
+                <div style={{
+                  position: 'relative',
+                  zIndex: 1,
+                  width: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minHeight: '60vh'
+                }}>
                   <div className="brand-text">
                     ETERNAL AI
                   </div>
                   <h1 className="hero-title">
-                  Discover Your Cosmic Path
+                    Discover Your Cosmic Path
                   </h1>
                   <p className="hero-description">
-                  Connect with Eternal AI and explore your spiritual journey 
-
-
+                    Connect with Eternal AI and explore your spiritual journey through personalized insights and cosmic guidance.
                   </p>
-                  {/* <button className="btn-demo">
-                    Start Demo
-                  </button> */}
                 </div>
               </div>
             </div>
-
-            {/* Right Section - Signup Form */}
+ 
+            {/* Right Section - Login Form */}
             <div className="col-lg-5 col-12">
               <div className="right-section">
-                <div className="signup-section">
+                <div className="login-section">
+                  {/* Success/Error Messages */}
+                  {success && (
+                    <div className="alert alert-success">
+                      {success}
+                    </div>
+                  )}
+                  {error && (
+                    <div className="alert alert-error">
+                      {error}
+                    </div>
+                  )}
+ 
                   <h2>
-                    Hey There! 👋
+                    Welcome Back! 👋
                   </h2>
-                  <h3>Login Now</h3>
-                  
-                  <div>
+                  <h3>Sign in to your account</h3>
+                 
+                  <form onSubmit={handleLogin}>
                     <div className="form-group">
-                      <label className="form-label">Email address / Phone Number*</label>
+                      <label className="form-label">Email Address</label>
                       <input
                         type="email"
-                        className="form-control"
+                        className={`form-control ${fieldErrors.email ? 'error' : ''}`}
                         name="email"
                         value={formData.email}
                         onChange={handleInputChange}
-                        placeholder="john@gmail.com"
+                        placeholder="Enter your email"
+                        disabled={isLoading}
                       />
-                      {fieldErrors.email && <div style={{ color: 'red', fontSize: '0.95rem', marginTop: 4 }}>{fieldErrors.email}</div>}
+                      {fieldErrors.email && (
+                        <div className="error-message">{fieldErrors.email}</div>
+                      )}
                     </div>
-                    
+                   
                     <div className="form-group">
-                      <label className="form-label">Password*</label>
+                      <label className="form-label">Password</label>
                       <div className="password-input-wrapper">
                         <input
                           type={showPassword ? "text" : "password"}
-                          className="form-control"
+                          className={`form-control ${fieldErrors.password ? 'error' : ''}`}
                           name="password"
                           value={formData.password}
                           onChange={handleInputChange}
-                          placeholder="Enter password"
+                          placeholder="Enter your password"
+                          disabled={isLoading}
                         />
                         <button
                           type="button"
                           className="password-toggle"
                           onClick={() => setShowPassword(!showPassword)}
+                          disabled={isLoading}
                         >
                           {showPassword ? '👁️' : '🙈'}
                         </button>
                       </div>
-                      {fieldErrors.password && <div style={{ color: 'red', fontSize: '0.95rem', marginTop: 4 }}>{fieldErrors.password}</div>}
+                      {fieldErrors.password && (
+                        <div className="error-message">{fieldErrors.password}</div>
+                      )}
                     </div>
-                    
-
-                    
-                    <button type="button" className="btn-signup"  onClick={handleLogin}>
-                      Login
+                   
+                    <button
+                      type="submit"
+                      className="btn-login"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <>
+                          <span className="loading-spinner"></span>
+                          Signing in...
+                        </>
+                      ) : (
+                        'Sign In'
+                      )}
                     </button>
-                  </div>
-                  
+                  </form>
+                 
                   <div className="divider">
-                    <span>Or</span>
+                    <span>or continue with</span>
                   </div>
-                  
-                  <div className="social-buttons">
-                    <a href="#" className="btn-google" onClick={handleGoogleSignIn}>
-                      <img src={logo} alt="Google Logo" style={{width: '20px', height: '20px', marginRight: '8px'}} />
-                      Sign up with Google
-                    </a>
-                    <a href="/splash" className="btn-guest">
-                      Continue as Guest
-                    </a>
-                  </div>
-                  
-                  <div className="login-link">
-                    Already have an account, <a href="/signup">Sign-up</a>
+                 
+                  <button
+                    className="btn-google"
+                    onClick={handleGoogleSignIn}
+                    disabled={isLoading}
+                  >
+                    <img
+                      src={logo}
+                      alt="Google Logo"
+                      style={{width: '20px', height: '20px'}}
+                    />
+                    Sign in with Google
+                  </button>
+                 
+                  <div className="signup-link">
+                    Don't have an account? <a href="/signup">Sign up here</a>
                   </div>
                 </div>
               </div>
@@ -664,14 +744,9 @@ const LoginPage: React.FC = () => {
           </div>
         </div>
       </div>
-      {success && (
-        <div style={{ color: 'green', textAlign: 'center', marginBottom: '1rem', fontWeight: 600, fontSize: '1.1rem' }}>{success}</div>
-      )}
-      {error && (
-        <div style={{ color: 'red', textAlign: 'center', marginBottom: '1rem', fontWeight: 600, fontSize: '1.1rem' }}>{error}</div>
-      )}
     </div>
   );
 };
-
+ 
 export default LoginPage;
+ 
